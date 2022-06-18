@@ -8,7 +8,6 @@ module.array = {};
 function module.tween(instance, info, props)
 	return Promise.new(function(resolve, reject, onCancel)
 		local tween = TweenService:Create(instance, info, props);
-
 		onCancel(function()
 			tween:Cancel();
 		end)
@@ -49,8 +48,9 @@ function module.fade(ui: Instance, duration: number, direction: string, recursiv
 		if (direction == "in") then
 			for _,v in ipairs(props) do
 				local default = ui:GetAttribute("Default" .. v);
-				local key = module.string.split(v, "Default")[1];
+				if (not default) then continue end;
 				
+				local key = module.string.split(v, "Default")[1];
 				if (ui[key] == default) then continue end;
 				goal[key] = default;
 			end
