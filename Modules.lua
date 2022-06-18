@@ -8,25 +8,62 @@ module.array = {};
 function module.tween(instance, info, props)
 	return Promise.new(function(resolve, reject, onCancel)
 		local tween = TweenService:Create(instance, info, props);
-		
+
 		onCancel(function()
 			tween:Cancel();
 		end)
-		
+
 		tween.Completed:Connect(resolve);
 		tween:Play();
 	end)
 end
 
-function module.fade(ui, duration, direction, props)
-	local goal = {};
-	local goalNum = module.ternary(typeof(direction) == "string", module.ternary(direction == "in", 0, 1), direction);
-	
-	for i,v in ipairs(props) do
-		goal[v] = goalNum;
+local function getProperty(Object: Instance)
+	if Object:IsA("TextLabel") or Object:IsA("TextButton") or Object:IsA("TextBox") then
+		return { "TextTransparency", "BackgroundTransparency" }
+	elseif Object:IsA("ViewportFrame") or Object:IsA("ImageButton") or Object:IsA("ImageLabel") then
+		return { "ImageTransparency" }
+	elseif Object:IsA("Frame") then
+		return { "BackgroundTransparency" }
+	elseif Object:IsA("ScrollingFrame") then
+		return { "ScrollBarImageTransparency" }
+	elseif Object:IsA("UIStroke") then 
+		return { "Transparency" }
+	end
+	return nil;
+end
+
+function module.fade(ui: Instance, duration: number, direction: string, recursive: boolean)
+	if (recursive) then
+		local desc = { ui, unpack(ui:GetDescendants()) };
+		for _,v in ipairs(desc) do
+			if (getProperty(v)) then module.fade(v, duration, direction) end;
+		end
+		return;
 	end
 	
-	return module.tween(ui, TweenInfo.new(duration, Enum.EasingStyle.Linear), goal);
+	local props = getProperty(ui);
+	local goal = {};
+	
+	if (typeof(direction) == "string") then
+		if (direction == "in") then
+			for _,v in ipairs(props) do
+				local default = ui:GetAttribute("Default" .. v);
+				local key = module.string.split(v, "Default")[1];
+				
+				if (ui[key] == default) then continue end;
+				goal[key] = default;
+			end
+		else
+			for _, v in ipairs(props) do
+				local transparency = ui:GetAttribute("Default" .. v);
+				if (not transparency) then transparency = ui[v]; ui:SetAttribute("Default" .. v, transparency) end;
+				goal[v] = 1;
+			end
+		end
+	end
+	
+	return module.tween(ui, TweenInfo.new(duration), goal);
 end
 
 function module.ternary(cond: boolean, t: any, f: any)
@@ -43,22 +80,22 @@ function module.toggleButton(button: TextButton|ImageButton, enabled: boolean)
 	local value = module.ternary(enabled, 0, 0.5);
 	for _,v in ipairs(button:getChildren()) do
 		if (module.string.startsWith(v.Name, "UI")) then continue end;
-		
+
 		if (string.find(v.ClassName, "Text")) then v.TextTransparency = value end;
 		if (v:FindFirstChild("Display")) then v:FindFirstChild("Display").Transparency = value end;
 		if (string.find(v.ClassName, "Button")) then v.BackgroundTransparency = value; v.AutoButtonColor = enabled end;
 	end
-	
+
 	button.Transparency = value;
 	if (string.find(button.ClassName, "Button")) then button.AutoButtonColor = enabled end;
 end
 
 function module.tweenModel(model, tweenInfo, cframe)
 	if (model:GetAttribute("InAction"))  then return end
-	
+
 	local CFrameValue = Instance.new("CFrameValue");
 	CFrameValue.Value = model:GetPrimaryPartCFrame();
-	
+
 	model:SetAttribute("InAction", true);
 	CFrameValue:GetPropertyChangedSignal("Value"):Connect(function()
 		model:SetPrimaryPartCFrame(CFrameValue.Value);
@@ -71,7 +108,7 @@ function module.tweenModel(model, tweenInfo, cframe)
 		CFrameValue:Destroy();
 		model:SetAttribute("InAction", false);
 	end)
-	
+
 	return tween;
 end
 
