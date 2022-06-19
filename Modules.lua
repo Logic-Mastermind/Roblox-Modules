@@ -34,11 +34,9 @@ end
 
 function module.fade(ui: Instance, duration: number, direction: string, recursive: boolean)
 	if (recursive) then
-		local desc = { ui, unpack(ui:GetDescendants()) };
-		for _,v in ipairs(desc) do
+		for _,v in ipairs(ui:GetDescendants()) do
 			if (getProperty(v)) then module.fade(v, duration, direction) end;
 		end
-		return;
 	end
 	
 	local props = getProperty(ui);
@@ -76,18 +74,20 @@ function module.ternary(cond: boolean, t: any, f: any)
 	end
 end
 
-function module.toggleButton(button: TextButton|ImageButton, enabled: boolean)
-	local value = module.ternary(enabled, 0, 0.5);
-	for _,v in ipairs(button:getChildren()) do
-		if (module.string.startsWith(v.Name, "UI")) then continue end;
-
-		if (string.find(v.ClassName, "Text")) then v.TextTransparency = value end;
-		if (v:FindFirstChild("Display")) then v:FindFirstChild("Display").Transparency = value end;
-		if (string.find(v.ClassName, "Button")) then v.BackgroundTransparency = value; v.AutoButtonColor = enabled end;
+function module.toggleUI(ui, value, recursive)
+	if (recursive) then
+		for _,v in ipairs(ui:GetDescendants()) do
+			if (getProperty(v)) then module.toggleUI(v, value) end;
+		end
 	end
-
-	button.Transparency = value;
-	if (string.find(button.ClassName, "Button")) then button.AutoButtonColor = enabled end;
+	
+	local props = getProperty(ui);
+	if (ui:IsA("GuiButton")) then ui.AutoButtonColor = value end;
+	
+	for _,v in ipairs(props) do
+		if (ui:GetAttribute("Ignore" .. v)) then continue end;
+		ui[v] = module.ternary(value, 0, 0.5);
+	end
 end
 
 function module.tweenModel(model, tweenInfo, cframe)
