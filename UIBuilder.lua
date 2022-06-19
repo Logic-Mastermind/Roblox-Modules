@@ -13,12 +13,12 @@ local Popups = Viewport.Popups;
 
 function module.toggleFade(value)
 	local fadeUi = Viewport.Fade;
-	local enabled = fadeUi:GetAttribute("Enabled");
-	if (value ~= nil) then enabled = value end;
+	local val = value;
+	if (value == nil) then val = not fadeUi:GetAttribute("Enabled") end;
 	
-	fadeUi.Visible = not enabled;
-	Modules.fade(fadeUi, 0.3, Modules.ternary(enabled, 1, 0), { "ImageTransparency" });
-	fadeUi:SetAttribute("Enabled", not enabled);
+	fadeUi.Visible = val;
+	Modules.fade(fadeUi, 0.3, Modules.ternary(val, "in", "out"));
+	fadeUi:SetAttribute("Enabled", val);
 end
 
 function module.createModal(title, desc)
@@ -68,12 +68,16 @@ function module.createInfoModal(title, desc)
 end
 
 function module.toggleModal(modal, value)
-	local enable = not modal:GetAttribute("Enabled");
-	if (value ~= nil) then enable = value end;
-	module.toggleFade(not enable);
+	local val = value;
+	if (value == nil) then
+		local enabled = modal:GetAttribute("Enabled");
+		if (enabled == nil) then val = true
+		else val = not enabled end;
+	end
 	
-	modal.Visible = enable;
-	modal:SetAttribute("Enabled", enable);
+	modal.Visible = val;
+	module.toggleFade(val);
+	modal:SetAttribute("Enabled", val);
 end
 
 function module.createPrompt(text, timeout)
@@ -86,14 +90,14 @@ function module.createPrompt(text, timeout)
 		prompt.Confirm.MouseButton1Click:Connect(function()
 			if (prompt.Confirm.BackgroundTransparency == 0.5) then return end;
 			Assets.UISounds.Click:Play();
-			Modules.toggleButton(prompt, false);
+			Modules.toggleUI(prompt, false, true);
 			resolve(1)
 		end)
 		
 		prompt.Deny.MouseButton1Click:Connect(function()
 			if (prompt.Deny.BackgroundTransparency == 0.5) then return end;
 			Assets.UISounds.Click:Play();
-			Modules.toggleButton(prompt, false);
+			Modules.toggleUI(prompt, false, true);
 			resolve(2);
 		end)
 	end)
@@ -122,14 +126,11 @@ function module.addToNotifPanel(ui, timeout)
 	tween:Play();
 
 	tween.Completed:Connect(function()
-		local barTween = TweenService:Create(ui.TimeoutBar, TweenInfo.new(timeout), { Size = UDim2.new(0, 0, 0.04, 0) });
-		barTween:Play();
-		
-		barTween.Completed:Wait();
-		local fade = Modules.fade(ui, 1, "out", { "BackgroundTransparency" });
-		fade:awaitStatus();
-		ui:Destroy();
-		ui.Name = "InfoWarning";
+		Modules.tween(ui.TimeoutBar, TweenInfo.new(timeout), { Size = UDim2.new(0, 0, 0.04, 0) }):andThen(function()
+			local fade = Modules.fade(ui, 1, "out", true);
+			fade:awaitStatus();
+			ui:Destroy();
+		end)
 	end)
 end
 return module
