@@ -21,6 +21,14 @@ function module.toggleFade(value)
 	fadeUi:SetAttribute("Enabled", val);
 end
 
+local function menuPosition(region: Frame, parent: Frame)
+	local regionEnd = Vector2.new(region.AbsolutePosition.X + region.AbsoluteSize.X, region.AbsolutePosition.Y + region.AbsoluteSize.Y);
+	local parentEnd = Vector2.new(parent.AbsolutePosition.X + parent.AbsoluteSize.X, parent.AbsolutePosition.Y + parent.AbsoluteSize.Y);
+
+	if (regionEnd.X > parentEnd.X) then region.AnchorPoint.X = 1 end;
+	if (regionEnd.Y > parentEnd.Y) then region.AnchorPoint.Y = 1 end;
+end
+
 function module.createModal(title, desc)
 	local modal = Templates.Modal:Clone();
 	module.toggleFade();
